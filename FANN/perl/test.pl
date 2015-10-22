@@ -93,7 +93,7 @@ elsif ($ARGV[0] eq 'test') {
 elsif ($ARGV[0] eq 'testsq') {
 		my $ann = AI::FANN->new_from_file("xor.ann");
 		
-		my($a,$b) = (3,4);
+		my($a,$b) = (13,4);
 		my 	$out = $ann->run([$a,$b]);
 		printf "%d + %d = %f (real: %f )\n", $a, $b, $out->[0], ($a+$b)/100;
 		
