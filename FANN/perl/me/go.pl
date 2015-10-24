@@ -93,70 +93,74 @@ sub editHFile
 	return;
 }
 
-sub createTrainFile
+sub parseCSV
 {
-	my($in, $filename) = @_;
-	
-	my(@rows, @arr);
-	
-	my $simple = Parse::CSV->new(
-		file => $filename,
-		sep_char   => ';',
-	);
-	
-	
+    my($filename) = @_;
 
-	while ( my $array_ref = $simple->fetch ) 
-	{
-		next if(!isNumeric($array_ref->[0]));
-	    
+    my(@arr);
+
+    my $simple = Parse::CSV->new(
+        file => $filename,
+        sep_char   => ';',
+    );
+
+    while ( my $array_ref = $simple->fetch ) 
+    {
+        next if(!isNumeric($array_ref->[0]));
+
         for(4..9)
         {
             push @arr, $array_ref->[$_];
         }
-         		
-	}
-    
-    #(@rows) = reverse(@arr); #перевернули массив
-    (@rows ) = (@arr);
-    (@arr) = ();
 
-	my($i) = 0; 
-
-	my(@finalrows) = ();
+    }
     
+    return @arr;
+}
+
+sub createTrainFile
+{
+    my($in, $filename) = @_;
+
+    my (@rows) = parseCSV($filename);    
+
+    my ($i, @arr) =(0);
+
+    my(@finalrows) = ();
+
     for(@rows)
     {
         $i++;
-        
+
         if($i<=$in*6)
         {
 
             push @arr, $_;
         }
-		elsif( $in*6 < $i and $i <= ($in+1) * 6 )
-		{	
+        elsif( $in*6 < $i and $i <= ($in+1) * 6 )
+        {	
             push @arr, ($_/$coef);
         }
         else
         {    
 
-			$i = 1;
-			
+            $i = 1;
+
             push @finalrows, arr2str(@arr);
-            
-			@arr = ();
+
+            @arr = ();
             push @arr, $_;
 
-		}
-        
+        }
+
     }
-	
+
     my $count  =  @finalrows;
-	#print Dumper @arr;
-	toFile(@finalrows);
-	editHFile($count);
-	return 1;
+    
+    toFile(@finalrows);
+    editHFile($count);
+
+    return 1;
 }
 
 sub main
@@ -187,7 +191,7 @@ sub main
 
         #каждая эпоха это постоение новой цепочки
         #вывод статистики показывает погрешность за указаный период эпох(предпологаю что это минимальное значение в эпохе)	
-        $ann->train_on_file($filetrain, 50000, 100, 0.009); #от последнего зависит точность данных
+        $ann->train_on_file($filetrain, 50000, 25, 0.0002); #от последнего зависит точность данных
 
         $ann->save($filename);
 
@@ -206,13 +210,32 @@ sub main
 	}
 	elsif($ARGV[0] eq 'test')
 	{
-        my $ann = AI::FANN->new_from_file($filename);
-        my (@data) = (40,37,31,3,25,23,6,44,26,10,27,40,33,43,20,14,9,3 );
-        my  $out = $ann->run([@data]);
-        
-        print Dumper $out;        
-        print "36  44  23  3   21  22 \n";
 
+        my $ann = AI::FANN->new_from_file($filename);
+        my (@data) = 
+        (
+            [qw(36 1 24 30 19 33 33 13 47 41 30 38 50 33 2 5 6 23)],
+            [qw(50 46 25 1 44 22 10 44 19 29 40 33 27 23 14 24 13 28)],
+            [qw(47 34 13 39 30 14 47 4 8 36 51 40 30 51 32 24 4 47)]
+        );
+        
+        my (@res) = 
+       ( 
+        '0.18 0.05 0.35 0.42 0.04 0.29',
+        '0.38 0.28 0.27 0.26 0.51 0.29',
+        '0.13 0.21 0.35 0.45 0.51 0.41'
+       ); 
+
+        for(0..2)
+        {
+            #print @$_;
+            print "start $_ \n";
+            my $out  = $ann->run($data[$_]);
+            print Dumper $out;
+            print $res[$_];
+
+            print "\nend\n";
+        }
         
 	}
 	else
