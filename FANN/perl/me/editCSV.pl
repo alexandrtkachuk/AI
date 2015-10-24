@@ -23,93 +23,59 @@ use warnings;
 use utf8;
 use Data::Dumper;
 use Parse::CSV;
+use Text::CSV;
 
-use ($coef) = 100; #
 
+my ($filenew) = 'new.csv';
 
-sub createTrainFile
+sub toFile
 {
-	my($in, $out) = @_;
+	my(@array) = @_;
 	
-	my(@rows, @arr);
 
-	my $simple = Parse::CSV->new(
-		file => '1.csv',
-		sep_char   => ';',
-	);
-	
-	my($i) = 0;
-
-	while ( my $array_ref = $simple->fetch ) 
-	{
-		next if( ($array_ref->[0] * 1) < 1);
-		
-		for(4..9)
-		{
-			push @arr, $array_ref->[$_];
-		}
-
-	}
-	
-	print Dumper @arr;
-}
-
-createTrainFile();
-
-die();
-
-my $simple = Parse::CSV->new(
-	file => '1.csv',
-	sep_char   => ';',
-);
-
-my (@rows);
-
-while ( my $array_ref = $simple->fetch ) 
-{
-	# Do something...
-
-	next if($array_ref->[0]*1 <1);
-
-	#print Dumper $array_ref;
-	my ($str) = $array_ref->[0].' '.
-	$array_ref->[4].' '.
-	$array_ref->[5].' ' . 
-	$array_ref->[6].' ' .
-	$array_ref->[7].' ' .
-	$array_ref->[8].' '.
-	$array_ref->[9]."\n";
-
-
-	push @rows, $str;
-
-
-}
-
-my $count = @rows; 
-
-for(my $i=$count-1;$i>=0;$i--)
-{
-    print  $rows[$i];
-	#print $rows[$i]->[2], "\n";
+	open(my $fh, '>>', $filenew) or die "Не могу открыть файл '$filenew' $!";
     
+    for(@array)
+    {
+        say $fh $_->[0];
+    }
+	
+	close $fh;
+}
+sub openCSV
+{
+    my ($filename) = @_;
+    my (@rows);
+    my $csv = Text::CSV->new ( { binary => 1 } )  # should set binary attribute.
+        or die "Cannot use CSV: ".Text::CSV->error_diag ();
+
+
+    open my $fh, "<:encoding(windows-1251)", $filename or die "$filename: $!";
+
+    while ( my $row = $csv->getline( $fh ) ) 
+    {
+        #$row->[2] =~ m/pattern/ or next; # 3rd field should match
+        push @rows, $row;
+        #print Dumper $row;
+    }
+
+    $csv->eof or $csv->error_diag();
+    close $fh;
+    
+    #print Dumper @rows;
+    $csv->eol ("\r\n");
+
+    return @rows;
 }
 
 
-die();
+open(my $fh, '>', $filenew) or die "Не могу открыть файл '$filenew' $!";
 
-my $csv = Text::CSV->new ( { binary => 1 } )  # should set binary attribute.
-                  or die "Cannot use CSV: ".Text::CSV->error_diag ();
+close $fh; #обнуляем файл
 
+for(1..4)
+{
+    my @arr = openCSV("$_.csv");
 
-open my $fh, "<:encoding(windows-1251)", "1.csv" or die "test.csv: $!";
-while ( my $row = $csv->getline( $fh ) ) {
-    #$row->[2] =~ m/pattern/ or next; # 3rd field should match
-    push @rows, $row;
-    print Dumper $row;
+    toFile(reverse(@arr));
 }
-$csv->eof or $csv->error_diag();
-close $fh;
-
-$csv->eol ("\r\n");
-
