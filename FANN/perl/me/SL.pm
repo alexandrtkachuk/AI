@@ -32,16 +32,22 @@ sub new
     return bless({ 
             'coef' => 100,
             'filename' => 'go.ann',
-            'filetrain' => 'train.txt'
+            'filetrain' => 'train.txt',
+            'input' => 18,
+            'neurons_hidden' => 64,
+            'neurons2_hidden' => 64,
+            'desired_error' => 0.05,
+            'epochs_between_reports' =>100,
+            'max_epochs' => 50000
         },$class);
 }
 
 sub train
 {
     my($self) = @_;
-    my $num_input = 18;
-    my $num_neurons_hidden = 128; #
-    my $num_neurons2_hidden = 128;
+    my $num_input = $self->{'input'}; #18;
+    my $num_neurons_hidden = $self->{'neurons_hidden'}; #
+    my $num_neurons2_hidden = $self->{'neurons2_hidden'};
     my $num_output = 6;
     my $ann = AI::FANN->new_standard( 
         $num_input, 
@@ -56,7 +62,40 @@ sub train
 
     #каждая эпоха это постоение новой цепочки
     #вывод статистики показывает погрешность за указаный период эпох(предпологаю что это минимальное значение в эпохе)	
-    $ann->train_on_file($self->{'filetrain'}, 50000, 100, 0.007); #от последнего зависит точность данных
+    $ann->train_on_file($self->{'filetrain'}, 
+        $self->{'max_epochs'}, 
+        $self->{'epochs_between_reports'}, 
+        $self->{'desired_error'}); #от последнего зависит точность данных
+
+    $ann->save($self->{'filename'});
+}
+
+
+
+sub trainCascad
+{
+    my($self) = @_;
+    my $num_input = $self->{'input'}; #18;
+    my $num_neurons_hidden = $self->{'neurons_hidden'}; #
+    my $num_neurons2_hidden = $self->{'neurons2_hidden'};
+    my $num_output = 6;
+    my $ann = AI::FANN->new_standard( 
+        $num_input, 
+        $num_neurons_hidden, 
+        $num_neurons2_hidden,
+        $num_output );
+
+    $ann->hidden_activation_function(FANN_SIGMOID_SYMMETRIC);
+    $ann->output_activation_function(FANN_SIGMOID_SYMMETRIC);
+
+    #print $ann->train_error_function;	
+
+    #каждая эпоха это постоение новой цепочки
+    #вывод статистики показывает погрешность за указаный период эпох(предпологаю что это минимальное значение в эпохе)	
+    $ann->cascadetrain_on_file($self->{'filetrain'}, 
+        $self->{'neurons_hidden'}, 
+        1, 
+        $self->{'desired_error'}); #от последнего зависит точность данных
 
     $ann->save($self->{'filename'});
 }
@@ -67,7 +106,9 @@ sub test
 
     my $ann = AI::FANN->new_from_file($self->{'filename'});
     
-    for(0..3)
+    my $count = @$data;
+
+    for(0..$count-1)
     {
         #print @$_;
         print "start $_ \n";
@@ -77,10 +118,6 @@ sub test
 
         print "\nend\n";
     }
-
-
-    die();
-
 }
 
 sub createTrainFile

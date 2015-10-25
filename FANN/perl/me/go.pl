@@ -26,45 +26,46 @@ use Parse::CSV;
 use AI::FANN qw(:all);
 use SL;
 
-my ($filetrain) = "train.txt";
-
 
 sub main
 {
-    my $filename = 'go.ann';
+    my $filename = 'brains/go.ann';
+    my $in = 18;
+    my ($filetrain) = "train/train.txt";
+    my ($sl) = SL->new();
 
-	unless($ARGV[0])
+    $sl->{'filetrain'} =$filetrain;
+    $sl->{'input'} = $in;
+	$sl->{'filename'} = $filename;
+    $sl->{'neurons_hidden'} = 128;
+    $sl->{'neurons2_hidden'} = 128;
+    $sl->{'desired_error'} = 0.00199;
+
+    unless($ARGV[0])
 	{
 		$ARGV[0] = 'none';
 	}
 
 	if ($ARGV[0] eq 'train') 
     {
-        my $sl = SL->new();
-        $sl->{'filetrain'} =$filetrain;
-        $sl->train();
+        #$sl->train();
+        $sl->trainCascad();
     }
 	elsif($ARGV[0] eq 'createfile')
 	{
 		open(my $fh, '>', $filetrain) or die "Не могу открыть файл '$filetrain' $!";
-		say $fh  "0 18 6";
+		say $fh  "0 $in 6";
 		close $fh; #обнуляем файл
         
-        my $sl = SL->new();
         #createTrainFile(3, '1.csv');
         #createTrainFile(3, '2.csv');
         #createTrainFile(3, '3.csv');
         $sl->createTrainFile(3, 'new2.csv');
-
+        
 	}
 	elsif($ARGV[0] eq 'test')
     {
-    #10 44 19 29 40 33 27 23 14 24 13 28 38 28 27 26 51 29 0.36 0.01 0.24 0.3 0.19 0.33 
-    #27 23 14 24 13 28 38 28 27 26 51 29 36 1 24 30 19 33 0.33 0.13 0.47 0.41 0.3 0.38 
-    #38 28 27 26 51 29 36 1 24 30 19 33 33 13 47 41 30 38 0.5 0.33 0.02 0.05 0.06 0.23 
-    #36 1 24 30 19 33 33 13 47 41 30 38 50 33 2 5 6 23 0.18 0.05 0.35 0.42 0.04 0.29
-    #
-    #my $ann = AI::FANN->new_from_file($filename);
+    
         my (@data) = 
         (
             [qw(10 44 19 29 40 33 27 23 14 24 13 28 38 28 27 26 51 29)],
@@ -81,11 +82,8 @@ sub main
             '0.18 0.05 0.35 0.42 0.04 0.29'  
         ); 
         
-        my $sl = SL->new();
         
         $sl->test(\@data, \@res);
-
-        
     }
     else
 	{
