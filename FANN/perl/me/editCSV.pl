@@ -26,7 +26,7 @@ use Parse::CSV;
 use Text::CSV;
 
 
-my ($filenew) = 'new.csv';
+my ($filenew) = 'new2.csv';
 
 sub toFile
 {
@@ -73,7 +73,7 @@ open(my $fh, '>', $filenew) or die "Не могу открыть файл '$file
 
 close $fh; #обнуляем файл
 
-for(1..4)
+for(4)
 {
     my @arr = openCSV("$_.csv");
 
