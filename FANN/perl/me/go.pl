@@ -29,7 +29,7 @@ use SL;
 
 sub main
 {
-    my $filename = 'brains/go.ann';
+    my $filename = 'brains/go-cas.ann';
     my $in = 18;
     my ($filetrain) = "train/train.txt";
     my ($sl) = SL->new();
@@ -37,7 +37,7 @@ sub main
     $sl->{'filetrain'} =$filetrain;
     $sl->{'input'} = $in;
 	$sl->{'filename'} = $filename;
-    $sl->{'neurons_hidden'} = 128;
+    $sl->{'neurons_hidden'} = 4;
     $sl->{'neurons2_hidden'} = 128;
     $sl->{'desired_error'} = 0.00199;
 
@@ -49,7 +49,7 @@ sub main
 	if ($ARGV[0] eq 'train') 
     {
         #$sl->train();
-        $sl->trainCascad();
+        $sl->trainCascad(600);
     }
 	elsif($ARGV[0] eq 'createfile')
 	{

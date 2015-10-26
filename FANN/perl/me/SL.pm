@@ -74,30 +74,31 @@ sub train
 
 sub trainCascad
 {
-    my($self) = @_;
+    my($self, $max_neurons) = @_;
     my $num_input = $self->{'input'}; #18;
-    my $num_neurons_hidden = $self->{'neurons_hidden'}; #
-    my $num_neurons2_hidden = $self->{'neurons2_hidden'};
     my $num_output = 6;
     my $ann = AI::FANN->new_standard( 
         $num_input, 
-        $num_neurons_hidden, 
-        $num_neurons2_hidden,
         $num_output );
 
     $ann->hidden_activation_function(FANN_SIGMOID_SYMMETRIC);
     $ann->output_activation_function(FANN_SIGMOID_SYMMETRIC);
-
-    #print $ann->train_error_function;	
-
+	
     #каждая эпоха это постоение новой цепочки
     #вывод статистики показывает погрешность за указаный период эпох(предпологаю что это минимальное значение в эпохе)	
+    
     $ann->cascadetrain_on_file($self->{'filetrain'}, 
-        $self->{'neurons_hidden'}, 
-        1, 
+        $max_neurons, 
+        1, #step  report
         $self->{'desired_error'}); #от последнего зависит точность данных
 
     $ann->save($self->{'filename'});
+}
+
+sub trainOut52
+{
+    #тренеровка в выходом в 52 и с входом 18
+    #просто брать файл парсить и делатьтренеровку по  дате  
 }
 
 sub test
