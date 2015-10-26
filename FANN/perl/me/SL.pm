@@ -98,7 +98,128 @@ sub trainCascad
 sub trainOut52
 {
     #тренеровка в выходом в 52 и с входом 18
-    #просто брать файл парсить и делатьтренеровку по  дате  
+    #просто брать файл парсить и делатьтренеровку по  дате 
+	
+	my($self,$max_epochs, $epochs_between_reports, $desired_error ) = @_;
+    my $num_input = $self->{'input'}; #18;
+    my $num_neurons_hidden = $self->{'neurons_hidden'}; #
+    my $num_neurons2_hidden = $self->{'neurons2_hidden'};
+    my $num_output = 52;
+    my $ann = AI::FANN->new_standard( 
+        $num_input, 
+        $num_neurons_hidden, 
+		$num_neurons2_hidden,
+        $num_output );
+
+    $ann->hidden_activation_function(FANN_SIGMOID_SYMMETRIC);
+    $ann->output_activation_function(FANN_SIGMOID_SYMMETRIC);
+
+    #print $ann->train_error_function;	
+
+    #каждая эпоха это постоение новой цепочки
+    #вывод статистики показывает погрешность за указаный период эпох(предпологаю что это минимальное значение в эпохе)	
+	
+	open(my $fh, '<:encoding(UTF-8)', $self->{'filetrain'}) or die "Could not open file ".$self->{'filetrain'}." $!";
+	my $row = <$fh>;
+
+	chomp $row;
+	my ($count) = split(' ',$row);
+	
+	my (@arr, @filalarr) =();
+
+	while ( $row = <$fh>) 
+	{
+		chomp $row;
+		#print "$row\n";
+		(@arr) = split(' ',$row);
+
+		my (@tempin, @tempout) = ();
+
+		for(0..$num_input-1)
+		{
+			push @tempin ,$arr[$_];
+		}
+
+		for($num_input..$num_input+5)
+		{
+			my $a = ($arr[$_] * $self->{'coef'}) - 1; 
+			$tempout[$a] = 1;
+		}
+		
+		for(0..51)
+		{
+			unless($tempout[$_])
+			{
+				$tempout[$_] = 0;
+			}
+		}
+
+		push @filalarr , [[@tempin], [@tempout]];
+
+		#print Dumper $filalarr[0]->[1]; 
+	}
+
+	close $fh;
+	
+
+	my $train = AI::FANN::TrainData->new_empty($count, $num_input, $num_output);
+
+	my $i =0;
+	for(@filalarr) 
+	{
+		$train->data($i,$_->[0], $_->[1]);
+		$i++;
+	}
+	
+	print $train->length , "\n"; # количество примеров для тренеровки
+	
+	#print Dumper $out;
+	for(0..10000)
+	{
+		for my $i(0..$train->length-1)
+		{
+			my ($in, $out) = $train->data($i);
+			$ann->train($in, $out);
+		}
+	}
+
+	#my ($in, $out) = $train->data(2);
+	#my (@rr) =  $ann->test($in, $out);
+	#print Dumper @rr;
+	
+
+	$ann->train_on_data($train, 
+        $max_epochs, 
+        $epochs_between_reports, 
+        $desired_error); #от последнего зависит точность данных
+
+    $ann->save($self->{'filename'});
+
+
+}
+
+sub sortme
+{
+	my(@arr) = @_;
+	my ($count, $per) = (0,0.9);
+
+	while($per > 0)
+	{
+		my($i) = (0);
+		for(@arr)
+		{
+			$i++;
+			if($per < $_)
+			{
+				print $i," - " ,$_, "\n";
+				$count++;
+				$arr[$i-1] = 0;
+				return  if($count > 10);
+			}
+		}
+
+		$per = $per - 0.1;
+	}
 }
 
 sub test
@@ -114,7 +235,8 @@ sub test
         #print @$_;
         print "start $_ \n";
         my $out  = $ann->run($$data[$_]);
-        print Dumper $out;
+		#print Dumper @$out;
+		sortme(@$out);
         print $$res[$_];
 
         print "\nend\n";
