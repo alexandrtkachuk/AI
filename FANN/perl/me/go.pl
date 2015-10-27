@@ -27,6 +27,7 @@ use AI::FANN qw(:all);
 use SL;
 
 
+
 sub main
 {
     my $filename = 'brains/go-out52.ann';
@@ -37,7 +38,7 @@ sub main
     $sl->{'filetrain'} =$filetrain;
     $sl->{'input'} = $in;
 	$sl->{'filename'} = $filename;
-    $sl->{'neurons_hidden'} = 64;
+    $sl->{'neurons_hidden'} = 68; # 52 * 4
     $sl->{'neurons2_hidden'} = 64;
     $sl->{'desired_error'} = 0.00199;
 
@@ -51,8 +52,26 @@ sub main
         #$sl->train(50000,1000,0.0000009);
 		#$sl->trainCascad(600);
 	
-        $sl->trainOut52(50000, 1000, 0.000059999);
+        $sl->trainOut52(50000, 1000, 0.00000000019999); # не то!!
     }
+	elsif($ARGV[0] eq 'trainN' )
+	{
+		$sl->{'input'} = 52*3;
+		$sl->{'filename'} = 'brains/go-tarin2me.ann';
+
+		$sl->craeteANN();
+		
+		#$sl->loadFileAnn();
+		
+		my ($train) = $sl->trainANN(10,50);
+		
+		$sl->save2fileANN();
+	
+		
+		$sl->trainData($train,50000, 100, 0.000000001);
+		$sl->{'filename'} = $filename;
+		$sl->save2fileANN();
+	}
 	elsif($ARGV[0] eq 'createfile')
 	{
 		open(my $fh, '>', $filetrain) or die "Не могу открыть файл '$filetrain' $!";
@@ -72,16 +91,16 @@ sub main
         (
             [qw(10 44 19 29 40 33 27 23 14 24 13 28 38 28 27 26 51 29)],
             [qw(27 23 14 24 13 28 38 28 27 26 51 29 36 1 24 30 19 33)],
-            [qw(38 28 27 26 51 29 36 1 24 30 19 33 33 13 47 41 30 38)],
-            [qw(36 1 24 30 19 33 33 13 47 41 30 38 50 33 2 5 6 23)]
+			#[qw(38 28 27 26 51 29 36 1 24 30 19 33 33 13 47 41 30 38)],
+			#[qw(36 1 24 30 19 33 33 13 47 41 30 38 50 33 2 5 6 23)]
         );
 
         my (@res) = 
         ( 
             '36 1 24 30 19 33', 
             '33 13 47 41 30 38', 
-            '50 33 2 5 6 23',
-            '0.18 0.05 0.35 0.42 0.04 0.29'  
+			'50 33 2 5 6 23',
+			'0.18 0.05 0.35 0.42 0.04 0.29'  
         ); 
         
         

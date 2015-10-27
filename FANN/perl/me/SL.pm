@@ -39,7 +39,7 @@ sub new
             'desired_error' => 0.05,
             'epochs_between_reports' =>100,
             'max_epochs' => 50000,
-            'ann' = undef
+            'ann' => undef
         },$class);
 }
 
@@ -144,11 +144,11 @@ sub craeteANN
     my $ann = AI::FANN->new_standard( 
         $num_input, 
         $num_neurons_hidden, 
-		$num_neurons2_hidden,
+		#$num_neurons2_hidden,
         $num_output );
 
-    $ann->hidden_activation_function(FANN_SIGMOID_SYMMETRIC);
-    $ann->output_activation_function(FANN_SIGMOID_SYMMETRIC);
+    $ann->hidden_activation_function(FANN_SIGMOID);
+    $ann->output_activation_function(FANN_SIGMOID);
         
     $self->{'ann'} = $ann;
 
@@ -168,10 +168,55 @@ sub save2fileANN
     return undef;
 }
 
+
+sub trainANN
+{
+	my($self, $count, $epoh) = @_;
+	
+	my ($train) = $self->file2data($self->{'ann'}->num_inputs, $self->{'ann'}->num_outputs, 'out52'
+			, 'in3x52'
+	);
+	
+	#my ($in, $out) = $train->data(0);
+	#print Dumper @$in;
+	#die();
+
+	$self->{'ann'} = train_to_file($count, $epoh, $train,$self->{'ann'});    
+	
+	return $train;
+}
+
+sub trainData
+{
+	my($self, $train, $max_epochs, $epochs_between_reports, $desired_error) = @_;
+	
+	$self->{'ann'}->train_on_data($train, 
+        $max_epochs, 
+        $epochs_between_reports, 
+        $desired_error); #от последнего зависит точность данных
+	
+	return 1;
+
+}
+
+sub loadFileAnn
+{
+	my($self) = @_;
+
+	$self->{'ann'} = AI::FANN->new_from_file($self->{'filename'});
+	
+	return 1;
+}
+
 sub file2data
 {
-    my($self, $num_input, $num_output, $key) = @_;
+    my($self, $num_input, $num_output, $key,$keyin) = @_;
     
+	unless($keyin)
+	{
+		$keyin = 'norm';
+	}
+
     open(my $fh, '<:encoding(UTF-8)', $self->{'filetrain'}) or die "Could not open file ".$self->{'filetrain'}." $!";
 	my $row = <$fh>;
 
@@ -188,12 +233,9 @@ sub file2data
 
         my (@tempin, @tempout) = ();
 
-		for(0..$num_input-1)
-		{
-			push @tempin ,$arr[$_];
-		}
-
+		(@tempin) = $self->createInData($keyin,$num_input, @arr);
 	    (@tempout) = $self->createOutData($key,$num_input, @arr);	
+		
 		push @filalarr , [[@tempin], [@tempout]];
 
 		#print Dumper $filalarr[0]->[1]; 
@@ -223,19 +265,8 @@ sub createOutData
 
     if($key eq 'out52')
     {
-        for($num_input..$num_input+5)
-        {
-            my $a = ($arr[$_] * $self->{'coef'}) - 1; 
-            $out[$a] = 1;
-        }
-
-        for(0..51)
-        {
-            unless($out[$_])
-            {
-                $out[$_] = 0;
-            }
-        }
+        
+		@out = did2bit($self->{'coef'}, @arr[-6..-1]);
     }
     elsif($key eq 'out6' )
     {
@@ -248,6 +279,48 @@ sub createOutData
     return (@out);
 }
 
+sub did2bit
+{
+	my ($coef, @arr) = @_;
+	#array count = 6
+	my(@out) = ();
+
+	for(0..51)
+	{
+		$out[$_] = 0;
+	}
+	
+	for(@arr)
+	{
+		my $a = ($_ * $coef) - 1; 
+		$out[$a] = 1;
+	}
+
+	return (@out);
+}
+
+sub createInData
+{
+	my ($self, $key,$num_input , @arr) = @_;
+
+	my(@in) = ();
+	
+	if($key eq 'norm')
+	{
+		for(0..$num_input-1)
+		{
+			push @in ,$arr[$_];
+		}
+	}
+	elsif($key eq 'in3x52')
+	{
+		push @in, did2bit(1, @arr[0..5]);
+		push @in, did2bit(1, @arr[5..11]);
+		push @in, did2bit(1, @arr[12..17]);
+	}	
+
+	return (@in);
+}
 
 sub train_to_file
 {
@@ -275,7 +348,7 @@ sub train_to_file
 sub sortme
 {
 	my(@arr) = @_;
-	my ($count, $per) = (0,0.9);
+	my ($count, $per) = (0,0.99);
 
 	while($per > 0)
 	{
@@ -292,7 +365,7 @@ sub sortme
 			}
 		}
 
-		$per = $per - 0.1;
+		$per = $per - 0.01;
 	}
 }
 
@@ -306,13 +379,20 @@ sub test
 
     for(0..$count-1)
     {
-        #print @$_;
+        #print @$_;	
+		
         print "start $_ \n";
-        my $out  = $ann->run($$data[$_]);
+		my ($dN) =  @$data[$_];
+		my (@dataN) = $self->createInData('in3x52', 
+			88, #в данный момент она не играет роли
+			@$dN
+	   	);
+
+        my $out  = $ann->run([@dataN]);
 		#print Dumper @$out;
 		sortme(@$out);
         print $$res[$_];
-
+		
         print "\nend\n";
     }
 }
