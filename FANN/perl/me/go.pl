@@ -29,7 +29,7 @@ use SL;
 
 sub main
 {
-    my $filename = 'brains/go-out52-new1.ann';
+    my $filename = 'brains/go-out52.ann';
     my $in = 18;
     my ($filetrain) = "train/train.txt";
     my ($sl) = SL->new();
@@ -37,8 +37,8 @@ sub main
     $sl->{'filetrain'} =$filetrain;
     $sl->{'input'} = $in;
 	$sl->{'filename'} = $filename;
-    $sl->{'neurons_hidden'} = 128;
-    $sl->{'neurons2_hidden'} = 52;
+    $sl->{'neurons_hidden'} = 64;
+    $sl->{'neurons2_hidden'} = 64;
     $sl->{'desired_error'} = 0.00199;
 
     unless($ARGV[0])
@@ -48,10 +48,10 @@ sub main
 
 	if ($ARGV[0] eq 'train') 
     {
-        #$sl->train();
+        #$sl->train(50000,1000,0.0000009);
 		#$sl->trainCascad(600);
 	
-		$sl->trainOut52(50000, 1000, 0.000049999);
+        $sl->trainOut52(50000, 1000, 0.000059999);
     }
 	elsif($ARGV[0] eq 'createfile')
 	{
@@ -62,7 +62,7 @@ sub main
         #createTrainFile(3, '1.csv');
         #createTrainFile(3, '2.csv');
         #createTrainFile(3, '3.csv');
-        $sl->createTrainFile(3, 'new2.csv');
+        $sl->createTrainFile(3, 'info/new2.csv');
         
 	}
 	elsif($ARGV[0] eq 'test')
