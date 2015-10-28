@@ -33,6 +33,7 @@ sub new
             'coef' => 100,
             'filename' => 'go.ann',
             'filetrain' => 'train.txt',
+			'filetest' => 'test.txt',
             'input' => 18,
             'neurons_hidden' => 64,
             'neurons2_hidden' => 64,
@@ -41,97 +42,6 @@ sub new
             'max_epochs' => 50000,
             'ann' => undef
         },$class);
-}
-
-sub train
-{
-    my($self ,$max_epochs, $epochs_between_reports, $desired_error) = @_;
-    my $num_input = $self->{'input'}; #18;
-    my $num_neurons_hidden = $self->{'neurons_hidden'}; #
-    my $num_neurons2_hidden = $self->{'neurons2_hidden'};
-    my $num_output = 6;
-    my $ann = AI::FANN->new_standard( 
-        $num_input, 
-        $num_neurons_hidden, 
-        $num_neurons2_hidden,
-        $num_output );
-
-    $ann->hidden_activation_function(FANN_SIGMOID_SYMMETRIC);
-    $ann->output_activation_function(FANN_SIGMOID_SYMMETRIC);
-	
-    my ($train) = $self->file2data($num_input, $num_output, 'out6');
-     $ann = train_to_file(5, 500, $train,$ann);
-    #каждая эпоха это постоение новой цепочки
-    #вывод статистики показывает погрешность за указаный период эпох(предпологаю что это минимальное значение в эпохе)	
-    $ann->train_on_data($train, 
-        $max_epochs, 
-        $epochs_between_reports, 
-        $desired_error); #от последнего зависит точность данных
-
-    $ann->save($self->{'filename'});
-}
-
-sub trainCascad
-{
-    my($self, $max_neurons) = @_;
-    my $num_input = $self->{'input'}; #18;
-    my $num_output = 6;
-    my $ann = AI::FANN->new_standard( 
-        $num_input, 
-        $num_output );
-
-    $ann->hidden_activation_function(FANN_SIGMOID_SYMMETRIC);
-    $ann->output_activation_function(FANN_SIGMOID_SYMMETRIC);
-
-
-    my ($train) = $self->file2data($num_input, $num_output, 'out6');
-    
-    #$ann = train_to_file(5, 500, $train,$ann);
-    #каждая эпоха это постоение новой цепочки
-    #вывод статистики показывает погрешность за указаный период эпох(предпологаю что это минимальное значение в эпохе)	
-    
-    $ann->cascadetrain_on_data($train, 
-        $max_neurons, 
-        1, #step  report
-        $self->{'desired_error'}); #от последнего зависит точность данных
-
-    $ann->save($self->{'filename'});
-}
-
-sub trainOut52
-{
-    #тренеровка в выходом в 52 и с входом 18
-    #просто брать файл парсить и делатьтренеровку по  дате 
-	
-	my($self,$max_epochs, $epochs_between_reports, $desired_error ) = @_;
-    my $num_input = $self->{'input'}; #18;
-    my $num_neurons_hidden = $self->{'neurons_hidden'}; #
-    my $num_neurons2_hidden = $self->{'neurons2_hidden'};
-    my $num_output = 52;
-    my $ann = AI::FANN->new_standard( 
-        $num_input, 
-        $num_neurons_hidden, 
-		$num_neurons2_hidden,
-        $num_output );
-
-    $ann->hidden_activation_function(FANN_SIGMOID_SYMMETRIC);
-    $ann->output_activation_function(FANN_SIGMOID_SYMMETRIC);
-
-    #print $ann->train_error_function;	
-
-    #каждая эпоха это постоение новой цепочки
-    #вывод статистики показывает погрешность за указаный период эпох(предпологаю что это минимальное значение в эпохе)	
-	
-    my ($train) = $self->file2data($num_input, $num_output, 'out52');
-    
-    $ann = train_to_file(6, 1000, $train,$ann);    
- 	
-	$ann->train_on_data($train, 
-        $max_epochs, 
-        $epochs_between_reports, 
-        $desired_error); #от последнего зависит точность данных
-
-    $ann->save($self->{'filename'});
 }
 
 sub craeteANN
@@ -147,11 +57,12 @@ sub craeteANN
 		#$num_neurons2_hidden,
         $num_output );
 
-    $ann->hidden_activation_function(FANN_SIGMOID);
-    $ann->output_activation_function(FANN_SIGMOID);
+    $ann->hidden_activation_function(FANN_LINEAR_PIECE_SYMMETRIC);
+    $ann->output_activation_function(FANN_LINEAR_PIECE_SYMMETRIC);
         
     $self->{'ann'} = $ann;
-
+	
+	undef $ann;
     return 1;
 }
 
@@ -168,22 +79,25 @@ sub save2fileANN
     return undef;
 }
 
+sub createTrainData
+{
+	my($self,$key) = @_;
+	
+	my ($train) = $self->file2data($self->{'ann'}->num_inputs, $self->{'ann'}->num_outputs
+		    ,'out52'
+			, $key
+	);
+	
+	return $train;
+}
 
 sub trainANN
 {
-	my($self, $count, $epoh) = @_;
-	
-	my ($train) = $self->file2data($self->{'ann'}->num_inputs, $self->{'ann'}->num_outputs, 'out52'
-			, 'in3x52'
-	);
-	
-	#my ($in, $out) = $train->data(0);
-	#print Dumper @$in;
-	#die();
+	my($self, $count, $epoh, $train) = @_;
 
 	$self->{'ann'} = train_to_file($count, $epoh, $train,$self->{'ann'});    
 	
-	return $train;
+	return 1;
 }
 
 sub trainData
@@ -196,7 +110,6 @@ sub trainData
         $desired_error); #от последнего зависит точность данных
 	
 	return 1;
-
 }
 
 sub loadFileAnn
@@ -208,16 +121,17 @@ sub loadFileAnn
 	return 1;
 }
 
-sub file2data
+sub file2array
 {
-    my($self, $num_input, $num_output, $key,$keyin) = @_;
+
+	my($self, $num_input, $num_output, $key,$keyin, $filename) = @_;
     
 	unless($keyin)
 	{
 		$keyin = 'norm';
 	}
 
-    open(my $fh, '<:encoding(UTF-8)', $self->{'filetrain'}) or die "Could not open file ".$self->{'filetrain'}." $!";
+    open(my $fh, '<:encoding(UTF-8)', $filename) or die "Could not open file ".$filename." $!";
 	my $row = <$fh>;
 
 	chomp $row;
@@ -236,13 +150,21 @@ sub file2data
 		(@tempin) = $self->createInData($keyin,$num_input, @arr);
 	    (@tempout) = $self->createOutData($key,$num_input, @arr);	
 		
-		push @filalarr , [[@tempin], [@tempout]];
-
-		#print Dumper $filalarr[0]->[1]; 
+		push @filalarr , [[@tempin], [@tempout]]; 
 	}
 
-	close $fh;
-	
+	close $fh;	
+	undef @arr;
+
+	return ($count ,@filalarr);
+}
+
+sub file2data
+{
+    my($self, $num_input, $num_output, $key,$keyin) = @_;
+    
+	my ($count ,@filalarr) =$self->file2array($num_input, 
+		$num_output, $key,$keyin, $self->{'filetrain'});	
 
 	my $train = AI::FANN::TrainData->new_empty($count, $num_input, $num_output);
 
@@ -252,10 +174,9 @@ sub file2data
 		$train->data($i,$_->[0], $_->[1]);
 		$i++;
 	}
-
+	undef @filalarr;
     return ($train);
 }
-
 
 sub createOutData
 {
@@ -270,56 +191,13 @@ sub createOutData
     }
     elsif($key eq 'out6' )
     {
-        for($num_input..$num_input+5)
+        for(@arr[-6..-1])
         {
-            push @out, $arr[$_] ;
+            push @out, $_;
         }
     }
 
     return (@out);
-}
-
-sub did2bit
-{
-	my ($coef, @arr) = @_;
-	#array count = 6
-	my(@out) = ();
-
-	for(0..51)
-	{
-		$out[$_] = 0;
-	}
-	
-	for(@arr)
-	{
-		my $a = ($_ * $coef) - 1; 
-		$out[$a] = 1;
-	}
-
-	return (@out);
-}
-
-sub createInData
-{
-	my ($self, $key,$num_input , @arr) = @_;
-
-	my(@in) = ();
-	
-	if($key eq 'norm')
-	{
-		for(0..$num_input-1)
-		{
-			push @in ,$arr[$_];
-		}
-	}
-	elsif($key eq 'in3x52')
-	{
-		push @in, did2bit(1, @arr[0..5]);
-		push @in, did2bit(1, @arr[5..11]);
-		push @in, did2bit(1, @arr[12..17]);
-	}	
-
-	return (@in);
 }
 
 sub train_to_file
@@ -341,60 +219,45 @@ sub train_to_file
         print "end $s - step \n";
     }
     
+	undef $train;
+
     return $ann;
 }
 
-
-sub sortme
+sub testANN
 {
-	my(@arr) = @_;
-	my ($count, $per) = (0,0.99);
-
-	while($per > 0)
-	{
-		my($i) = (0);
-		for(@arr)
-		{
-			$i++;
-			if($per < $_)
-			{
-				print $i," - " ,$_, "\n";
-				$count++;
-				$arr[$i-1] = 0;
-				return  if($count > 15);
-			}
-		}
-
-		$per = $per - 0.01;
-	}
-}
-
-sub test
-{
-    my($self, $data, $res) = @_;
-
-    my $ann = AI::FANN->new_from_file($self->{'filename'});
-    
-    my $count = @$data;
-
-    for(0..$count-1)
+    my($self, $key) = @_;
+	
+	$self->loadFileAnn();
+	
+	my ($count ,@data) = $self->file2array($self->{'ann'}->num_inputs, 
+		$self->{'ann'}->num_outputs, 
+		'out6'
+		,$key, 
+		$self->{'filetest'});
+	
+    for my $i(0..$count-1)
     {
         #print @$_;	
 		
-        print "start $_ \n";
-		my ($dN) =  @$data[$_];
-		my (@dataN) = $self->createInData('in3x52', 
-			88, #в данный момент она не играет роли
-			@$dN
-	   	);
-
-        my $out  = $ann->run([@dataN]);
+        print "start $i \n";
+		my ($dN) =  $data[$i]->[0];
+			
+        my $out  = $self->{'ann'}->run([@$dN]);
 		#print Dumper @$out;
-		sortme(@$out);
-        print $$res[$_];
+		my (@assum) = sortme(10, @$out);
 		
-        print "\nend\n";
+		for(@assum)
+		{
+			print $_->[0], ' -> ' ,$_->[1],  "\n";
+		}
+		
+		my $res = $data[$i]->[1];
+		
+        print Dumper $res;
+		print 	"\nend\n";
     }
+
 }
 
 sub createTrainFile

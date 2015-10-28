@@ -21,13 +21,14 @@ use strict;
 use warnings;
 use Exporter;
 use Parse::CSV;
+use Data::Dumper;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 $VERSION     = 1.00;
 @ISA         = qw(Exporter);
 @EXPORT      = ();
-@EXPORT_OK   = qw(isNumeric arr2str  getInArr parseCSV editHFile toFile);
-%EXPORT_TAGS = ( DEF => [qw(&isNumeric  &arr2str  &getInArr &parseCSV &editHFile &toFile)] );
+@EXPORT_OK   = qw(isNumeric arr2str  getInArr parseCSV editHFile toFile did2bit createInData sortme);
+%EXPORT_TAGS = ( DEF => [qw(&isNumeric  &arr2str  &getInArr &parseCSV &editHFile &toFile &did2bit &createInData &sortme)] );
 
 sub isNumeric
 {
@@ -130,6 +131,91 @@ sub toFile
     }
 	
 	close $fh;
+}
+
+sub did2bit
+{
+	my ($coef, @arr) = @_;
+	#array count = 6
+	my(@out) = ();
+
+	for(0..51)
+	{
+		$out[$_] = 0;
+	}
+	
+	for(@arr)
+	{
+		my $a = ($_ * $coef) - 1; 
+		$out[$a] = 1;
+	}
+		
+	return (@out);
+}
+
+sub createInData
+{
+	my ($self, $key,$num_input , @arr) = @_;
+
+	my(@in) = ();
+	
+	if($key eq 'norm')
+	{
+		for(0..$num_input-1)
+		{
+			push @in ,$arr[$_];
+		}
+	}
+	elsif($key eq 'in3x52')
+	{
+		push @in, did2bit(1, @arr[0..5]);
+		push @in, did2bit(1, @arr[5..11]);
+		push @in, did2bit(1, @arr[12..17]);
+	}	
+	elsif($key eq 'in4x52')
+	{
+		push @in, did2bit(1, @arr[0..5]);
+		push @in, did2bit(1, @arr[5..11]);
+		push @in, did2bit(1, @arr[12..17]);
+		push @in, did2bit(1, @arr[18..23]);
+	}	
+	elsif(isNumeric($key))
+	{
+		my ( $count ) = $key*6;
+
+		for(my ($i) = 0; $i < $count; $i = $i+6)
+		{
+			push @in, did2bit(1, @arr[$i..$i+5]);	 
+		}
+	}
+
+	return (@in);
+}
+
+sub sortme
+{
+	my($min,@arr) = @_;
+	my ($count, $per, @out) = (0,1);
+	
+	while($per > 0)
+	{
+		my($i) = (0);
+		for(@arr)
+		{
+			$i++;
+			if($per <= $_)
+			{	
+				push @out ,( [$i, $_]);
+				$count++;
+				$arr[$i-1] = 0;
+				return  (@out) if($count >= $min);
+			}
+		}
+
+		$per = $per - 0.01;
+	}
+
+	return (@out);
 }
 
 1;
