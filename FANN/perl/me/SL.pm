@@ -147,7 +147,7 @@ sub file2array
 
         my (@tempin, @tempout) = ();
 
-		(@tempin) = $self->createInData($keyin,$num_input, @arr);
+		(@tempin) = createInData($keyin,$num_input, @arr);
 	    (@tempout) = $self->createOutData($key,$num_input, @arr);	
 		
 		push @filalarr , [[@tempin], [@tempout]]; 
@@ -276,7 +276,8 @@ sub createTrainFile
 
     for($i = 0; $i<$CR; $i = $i+6)
     {
-        (@arr) = getInArr($i, $in*6,@rows);
+		#необходимо избавиться от этой функции getInArr
+	 	(@arr) = getInArr($i, $in*6,@rows);
 
         my (@temp) = getInArr($i+$in*6, 6,@rows);
 

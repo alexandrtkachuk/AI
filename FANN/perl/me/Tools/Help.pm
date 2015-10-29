@@ -57,6 +57,7 @@ sub arr2str
 	return $str;
 }
 
+#nee delet this function 
 sub getInArr
 {
     my ($start, $count, @arr) = @_;
@@ -155,7 +156,7 @@ sub did2bit
 
 sub createInData
 {
-	my ($self, $key,$num_input , @arr) = @_;
+	my ($key,$num_input , @arr) = @_;
 
 	my(@in) = ();
 	
@@ -197,7 +198,7 @@ sub sortme
 	my($min,@arr) = @_;
 	my ($count, $per, @out) = (0,1);
 	
-	while($per > 0)
+	while($per > 0.001)
 	{
 		my($i) = (0);
 		for(@arr)
