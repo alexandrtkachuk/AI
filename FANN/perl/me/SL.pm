@@ -4,6 +4,15 @@
 #         FILE: SL.pm
 #
 #  DESCRIPTION: 
+#	
+#	MUST DO:
+#	1) Create ANN 
+#	2)set desired errors
+#	3)set count epoh 
+#	4)set count reporst step epoh 
+#	5)set count train 
+#	6)set count neurons
+#	7)set enum fann_activationfunc_enum 
 #
 #        FILES: ---
 #         BUGS: ---
@@ -24,12 +33,13 @@ use Parse::CSV;
 use AI::FANN qw(:all);
 use Tools::Help qw/:DEF/;
 use Data::Dumper;
+use Scalar::Util qw(weaken blessed unweaken );
 
 sub new
 {
     my ($class) = ref($_[0])||$_[0];
     
-    return bless({ 
+    return   bless({ 
             'coef' => 100,
             'filename' => 'go.ann',
             'filetrain' => 'train.txt',
@@ -40,7 +50,9 @@ sub new
             'desired_error' => 0.05,
             'epochs_between_reports' =>100,
             'max_epochs' => 50000,
-            'ann' => undef
+            'ann' => undef,
+			'train' => undef
+
         },$class);
 }
 
@@ -57,8 +69,8 @@ sub craeteANN
 		#$num_neurons2_hidden,
         $num_output );
 
-    $ann->hidden_activation_function(FANN_LINEAR_PIECE_SYMMETRIC);
-    $ann->output_activation_function(FANN_LINEAR_PIECE_SYMMETRIC);
+    $ann->hidden_activation_function(FANN_SIGMOID);
+    $ann->output_activation_function(FANN_SIGMOID);
         
     $self->{'ann'} = $ann;
 	
@@ -83,28 +95,26 @@ sub createTrainData
 {
 	my($self,$key) = @_;
 	
-	my ($train) = $self->file2data($self->{'ann'}->num_inputs, $self->{'ann'}->num_outputs
+	 $self->file2data($self->{'ann'}->num_inputs, $self->{'ann'}->num_outputs
 		    ,'out52'
 			, $key
 	);
-	
-	return $train;
 }
 
 sub trainANN
 {
-	my($self, $count, $epoh, $train) = @_;
+	my($self, $count, $epoh) = @_;
 
-	$self->{'ann'} = train_to_file($count, $epoh, $train,$self->{'ann'});    
+	$self->train_to_file($count, $epoh);    
 	
 	return 1;
 }
 
 sub trainData
 {
-	my($self, $train, $max_epochs, $epochs_between_reports, $desired_error) = @_;
+	my($self, $max_epochs, $epochs_between_reports, $desired_error) = @_;
 	
-	$self->{'ann'}->train_on_data($train, 
+	$self->{'ann'}->train_on_data($self->{'train'},
         $max_epochs, 
         $epochs_between_reports, 
         $desired_error); #от последнего зависит точность данных
@@ -166,16 +176,18 @@ sub file2data
 	my ($count ,@filalarr) =$self->file2array($num_input, 
 		$num_output, $key,$keyin, $self->{'filetrain'});	
 
-	my $train = AI::FANN::TrainData->new_empty($count, $num_input, $num_output);
+	$self->{'train'} = AI::FANN::TrainData->new_empty($count, $num_input, $num_output);
 
 	my $i =0;
 	for(@filalarr) 
 	{
-		$train->data($i,$_->[0], $_->[1]);
+		$self->{'train'}->data($i,$_->[0], $_->[1]);
 		$i++;
 	}
-	undef @filalarr;
-    return ($train);
+	 
+	@filalarr = (undef);
+
+    return ;
 }
 
 sub createOutData
@@ -202,32 +214,34 @@ sub createOutData
 
 sub train_to_file
 {
-    my($count, $step, $train, $ann) = @_;
+    my($self , $count, $step) = @_;
     
     for my $s (1..$count)
     {
         for(0..$step)
         {
-            for my $i(0..$train->length-1)
+            for my $i(0..$self->{'train'}->length-1)
             {
-                my ($in, $out) = $train->data($i);
-                $ann->train($in, $out);
+                my ($in, $out)= $self->{'train'}->data($i);
+				
+
+				#$self->{'ann'}->train($in, $out);
+				
+				$in = undef;	
+				$out = undef;
             }
         }
 
         #sleep(5);
         print "end $s - step \n";
     }
-    
-	undef $train;
 
-    return $ann;
+    return ;
 }
 
 sub testANN
 {
-    my($self, $key) = @_;
-	
+    my($self, $key) = @_;	
 	$self->loadFileAnn();
 	
 	my ($count ,@data) = $self->file2array($self->{'ann'}->num_inputs, 
@@ -254,7 +268,7 @@ sub testANN
 		
 		my $res = $data[$i]->[1];
 		
-        print Dumper $res;
+		print Dumper $res;
 		print 	"\nend\n";
     }
 
@@ -262,7 +276,8 @@ sub testANN
 
 sub createTrainFile
 {
-    my($self, $in, $filename) = @_;
+    my($self, $in, $filename,$count_data_train, $count_data_test  ) = @_;
+	#$count_data_train
 
     my (@rows) = parseCSV($filename);    
 
@@ -277,9 +292,9 @@ sub createTrainFile
     for($i = 0; $i<$CR; $i = $i+6)
     {
 		#необходимо избавиться от этой функции getInArr
-	 	(@arr) = getInArr($i, $in*6,@rows);
-
-        my (@temp) = getInArr($i+$in*6, 6,@rows);
+	 	(@arr) = @rows[$i..$i+$in*6-1];  
+		
+	    my (@temp) =@rows[$i+$in*6..$i+$in*6+5];  
 
         for(@temp)
         {	
@@ -288,13 +303,39 @@ sub createTrainFile
 
         push @finalrows, arr2str(@arr);
     }
+	
+
 
     my $count  =  @finalrows;
-   
+
+	if($count > $count_data_train+$count_data_test)
+	{
+		$count = $count_data_train+$count_data_test;
+
+		(@finalrows) = @finalrows[-1*$count..-1];
+	}
+	
+	toFile( $self->{'filetest'}, @finalrows[-1*$count_data_test..-1]); #create test file
+
+	for(0..$count_data_test-1)
+	{
+		pop @finalrows;
+		$count--;
+	}
+
     toFile( $self->{'filetrain'}, @finalrows);
+
     editHFile($count, $self->{'filetrain'});
 
     return 1;
+}
+
+sub DESTROY 
+{
+	my $self = shift;
+	undef $self->{'ann'};
+	
+   #$self->{'train'} = undef;   
 }
 
 1;

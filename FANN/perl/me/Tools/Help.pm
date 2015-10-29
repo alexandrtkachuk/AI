@@ -57,21 +57,6 @@ sub arr2str
 	return $str;
 }
 
-#nee delet this function 
-sub getInArr
-{
-    my ($start, $count, @arr) = @_;
-
-    my (@newarr);
-
-    for($start..$start+$count-1)
-    {
-        push @newarr, $arr[$_];
-    }
-    
-    return @newarr;
-}
-
 sub parseCSV
 {
     my($filename) = @_;
@@ -197,8 +182,10 @@ sub sortme
 {
 	my($min,@arr) = @_;
 	my ($count, $per, @out) = (0,1);
+
+ 
 	
-	while($per > 0.001)
+	while($per > 0)
 	{
 		my($i) = (0);
 		for(@arr)
@@ -213,7 +200,7 @@ sub sortme
 			}
 		}
 
-		$per = $per - 0.01;
+		$per = $per - 0.0001;
 	}
 
 	return (@out);
