@@ -24,25 +24,65 @@ use strict;
 use warnings;
 use utf8;
 use Data::Dumper;
-use Parse::CSV;
-use AI::FANN qw(:all);
 use SL;
+
+my ($sl, @globalCash);
+sub auto_test
+{
+	my($keyNum, $countTrain) =@_;
+
+	$sl->{'auto'} = 1;
+
+	$sl->craeteANN();
+
+	$sl->createTrainData($keyNum); #set key = count 6 * num exaple	
+
+	$sl->trainANN($countTrain,1000);
+
+	my($ann) =  $sl->{'ann'};
+
+	for(0..4)
+	{
+		undef $sl->{'ann'};
+		$sl->{'ann'} = $ann;
+		$sl->trainData(10000, 0, 0.000000035);		
+		my ($bitfail) = $sl->{'ann'}->bit_fail;
+
+		#$sl->save2fileANN();
+
+
+		my (@res) = $sl->autoTestANN($keyNum);
+		my ($neurons) = $sl->{'neurons_hidden'};
+		my ($trainigs) = $countTrain * 1000;
+
+		print "key = $keyNum \tneurons = $neurons \ttrainings = $trainigs \t1)$res[0] \t2)$res[1] \t3)$res[2] \tbit fail = $bitfail \n"; 
+		push @globalCash , $sl->autoTestNext($keyNum);
+	}
+
+	undef $ann;
+	undef $sl->{'ann'};
+}
+
+
+
 
 
 sub main
 {
     my $filename = 'brains/go-out52.ann';
     my $in = 18;
-	my $keyNum = 10;
+	my $keyNum = 15;
     my ($filetrain) = "train/train.txt";
-    my ($sl) = SL->new();
+
+    $sl = SL->new();
 
     $sl->{'filetrain'} =$filetrain;
 	$sl->{'filetest'} ="train/test.txt";
-    $sl->{'input'} = $in;
+	#$sl->{'input'} = $in; # for old version
+	$sl->{'input'} = 52*$keyNum;
 	$sl->{'filename'} = $filename;
-    $sl->{'neurons_hidden'} = 30; # 52 * 4
-    $sl->{'neurons2_hidden'} = 64;
+    $sl->{'neurons_hidden'} = 24; # 52 * 4
+    $sl->{'neurons2_hidden'} = 0;
     $sl->{'desired_error'} = 0.00199;
 
     unless($ARGV[0])
@@ -52,7 +92,6 @@ sub main
 
 	if($ARGV[0] eq 'train' )
 	{
-		$sl->{'input'} = 52*$keyNum;
 		$sl->{'filename'} = 'brains/go-tarin2me.ann';
 
 		$sl->craeteANN();
@@ -65,12 +104,12 @@ sub main
 		#print Dumper @$INDATA; 
 		#return ;
 		
-		$sl->trainANN(10,100);
+		$sl->trainANN(30,1000);
 		
 		$sl->save2fileANN();
 	
 		
-		$sl->trainData(50000, 100, 0.0000000015);
+		$sl->trainData(50000, 100, 0.000000035);
 		$sl->{'filename'} = $filename;
 		$sl->save2fileANN();
 
@@ -99,17 +138,40 @@ sub main
         #createTrainFile(3, '1.csv');
         #createTrainFile(3, '2.csv');
         #createTrainFile(3, '3.csv');
-        $sl->createTrainFile($keyNum, 'info/new2.csv' ,100, 3);
+        $sl->createTrainFile($keyNum, 'info/new2.csv' ,25, 3);
         
 	}
 	elsif($ARGV[0] eq 'test')
     {
-   		$sl->testANN($keyNum);
+		$sl->testANN($keyNum);
     }
+	elsif($ARGV[0] eq 'autotest')
+    {	
+		$sl->{'neurons_hidden'} = 15; # 52 * 4	
+		$sl->{'neurons2_hidden'} = 0;	
+		
+
+		for(1..10)
+		{
+				#$sl->{'neurons_hidden'} = $_;
+				#auto_test($keyNum, 5);
+				auto_test($keyNum, 5);
+		}
+
+		for my $i (1..52)
+		{
+			my ($count) = 0;
+			for(@globalCash)
+			{
+				$count++ if($_*100 == $i);
+			}
+
+			print "$i= $count";
+		}
+	}
     else
 	{
-		print "undef command ( train, test, createfile )  \n";         
-
+		print "undef command ( train, test, createfile, autotest )  \n";
 	}
 	
 	return 1;

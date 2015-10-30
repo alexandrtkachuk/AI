@@ -23,8 +23,8 @@
 #      CREATED: 25.10.2015 09:46:06
 #     REVISION: ---
 #===============================================================================
-
 package SL;
+
 
 use strict;
 use warnings;
@@ -33,7 +33,6 @@ use Parse::CSV;
 use AI::FANN qw(:all);
 use Tools::Help qw/:DEF/;
 use Data::Dumper;
-use Scalar::Util qw(weaken blessed unweaken );
 
 sub new
 {
@@ -51,8 +50,9 @@ sub new
             'epochs_between_reports' =>100,
             'max_epochs' => 50000,
             'ann' => undef,
-			'train' => undef
-
+			'train' => undef,
+			'datatrain' =>undef,
+			'auto' => undef #for auto train
         },$class);
 }
 
@@ -63,11 +63,20 @@ sub craeteANN
     my $num_neurons_hidden = $self->{'neurons_hidden'}; #
     my $num_neurons2_hidden = $self->{'neurons2_hidden'};
     my $num_output = 52;
-    my $ann = AI::FANN->new_standard( 
-        $num_input, 
-        $num_neurons_hidden, 
-		#$num_neurons2_hidden,
-        $num_output );
+    
+
+	my(@inArr) =();
+
+	push @inArr, $num_input;
+
+	push @inArr, $self->{'neurons_hidden'};
+	
+	push @inArr, $self->{'neurons2_hidden'} if($num_neurons2_hidden);
+
+	push @inArr, $num_output;
+
+	my $ann = AI::FANN->new_standard(@inArr );
+	
 
     $ann->hidden_activation_function(FANN_SIGMOID);
     $ann->output_activation_function(FANN_SIGMOID);
@@ -184,9 +193,10 @@ sub file2data
 		$self->{'train'}->data($i,$_->[0], $_->[1]);
 		$i++;
 	}
-	 
-	@filalarr = (undef);
-
+	
+	($self->{'datatrain'}) = (\@filalarr);
+	
+	#@filalarr = (undef);
     return ;
 }
 
@@ -220,20 +230,18 @@ sub train_to_file
     {
         for(0..$step)
         {
-            for my $i(0..$self->{'train'}->length-1)
-            {
-                my ($in, $out)= $self->{'train'}->data($i);
-				
-
-				#$self->{'ann'}->train($in, $out);
-				
-				$in = undef;	
-				$out = undef;
+			#this is fix use more memory
+			my ($arr) = $self->{'datatrain'};
+            
+			for my $i(@$arr)
+            {	
+				$self->{'ann'}->train($i->[0], $i->[1]);	
             }
-        }
 
-        #sleep(5);
-        print "end $s - step \n";
+			undef $arr;
+        }
+        
+        print "end $s - step \n" unless($self->{'auto'});
     }
 
     return ;
@@ -261,18 +269,109 @@ sub testANN
 		#print Dumper @$out;
 		my (@assum) = sortme(10, @$out);
 		
+		my ($amount) = 0;	
+		my $res = $data[$i]->[1];
+
 		for(@assum)
 		{
 			print $_->[0], ' -> ' ,$_->[1],  "\n";
+			$amount++ if(in_array($_->[0],@$res));
 		}
 		
-		my $res = $data[$i]->[1];
+		
 		
 		print Dumper $res;
-		print 	"\nend\n";
+
+		print 	"\n amount  = $amount  \nend\n";
     }
 
 }
+
+
+
+sub in_array
+{
+	my ($item, @arr) = @_;
+		
+	for(@arr)
+	{
+		my ($el) = $_ * 100; 
+		return 1 if($item eq "$el");
+	}
+
+	return undef;
+}
+
+sub autoTestANN
+{	
+	my($self, $key) = @_;	
+	
+	#altogether process tarin and test 
+	#$self->loadFileAnn();  
+
+	my ($count ,@data) = $self->file2array($self->{'ann'}->num_inputs, 
+		$self->{'ann'}->num_outputs, 
+		'out6'
+		,$key, 
+		$self->{'filetest'});
+
+	my (@resOut) = ();
+
+	for my $i(0..$count-1)
+	{
+		my ($dN) =  $data[$i]->[0];
+		
+		my $out  = $self->{'ann'}->run([@$dN]);
+
+		my (@assum) = sortme(10, @$out);
+
+		my $res = $data[$i]->[1];
+		
+		my ($amount) = 0; 
+
+		for(@assum)
+		{
+			#print $_->[0], ' -> ' ,$_->[1],  "\n";
+
+			if(in_array($_->[0],@$res))
+			{
+				#print $_->[0], ' -> ' ,$_->[1],  "\n";
+				$amount++;
+			}
+		}
+
+		push @resOut, $amount;
+	}
+	
+	return @resOut;
+}
+
+sub autoTestNext
+{	
+	my($self, $key) = @_;	
+	
+	#altogether process tarin and test 
+	#$self->loadFileAnn();  
+
+	my ($count ,@data) = $self->file2array($self->{'ann'}->num_inputs, 
+		$self->{'ann'}->num_outputs, 
+		'out6'
+		,$key, 
+		$self->{'filetest'});
+
+	my (@resOut) = ();
+	
+	my ($dN) =  $data[0]->[0];
+
+	my $out  = $self->{'ann'}->run([@$dN]);
+	my (@assum) = sortme(10, @$out);
+	
+	undef $out;
+	
+	return (@assum);
+}
+
+
 
 sub createTrainFile
 {
@@ -330,12 +429,21 @@ sub createTrainFile
     return 1;
 }
 
+sub DelANN
+{
+	my $self = shift;
+	
+	undef $self->{'ann'};
+	$self->{'datatrain'} = undef;
+    $self->{'train'} = undef;
+}
+
 sub DESTROY 
 {
 	my $self = shift;
 	undef $self->{'ann'};
-	
-   #$self->{'train'} = undef;   
+	$self->{'datatrain'} = undef;
+    $self->{'train'} = undef;   
 }
 
 1;
