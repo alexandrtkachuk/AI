@@ -78,8 +78,8 @@ sub craeteANN
 	my $ann = AI::FANN->new_standard(@inArr );
 	
 
-    $ann->hidden_activation_function(FANN_SIGMOID);
-    $ann->output_activation_function(FANN_SIGMOID);
+    $ann->hidden_activation_function(FANN_SIGMOID_SYMMETRIC);
+    $ann->output_activation_function(FANN_SIGMOID_SYMMETRIC);
         
     $self->{'ann'} = $ann;
 	
@@ -267,7 +267,7 @@ sub testANN
 			
         my $out  = $self->{'ann'}->run([@$dN]);
 		#print Dumper @$out;
-		my (@assum) = sortme(10, @$out);
+		my (@assum) = sortme(20, @$out);
 		
 		my ($amount) = 0;	
 		my $res = $data[$i]->[1];

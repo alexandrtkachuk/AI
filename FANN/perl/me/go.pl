@@ -71,7 +71,7 @@ sub main
 {
     my $filename = 'brains/go-out52.ann';
     my $in = 18;
-	my $keyNum = 15;
+	my $keyNum = 6 ;
     my ($filetrain) = "train/train.txt";
 
     $sl = SL->new();
@@ -81,7 +81,7 @@ sub main
 	#$sl->{'input'} = $in; # for old version
 	$sl->{'input'} = 52*$keyNum;
 	$sl->{'filename'} = $filename;
-    $sl->{'neurons_hidden'} = 24; # 52 * 4
+    $sl->{'neurons_hidden'} = 64; # 52 * 4
     $sl->{'neurons2_hidden'} = 0;
     $sl->{'desired_error'} = 0.00199;
 
@@ -94,9 +94,9 @@ sub main
 	{
 		$sl->{'filename'} = 'brains/go-tarin2me.ann';
 
-		$sl->craeteANN();
+		#$sl->craeteANN();
 		
-		#$sl->loadFileAnn();
+		$sl->loadFileAnn();
 		
 		$sl->createTrainData($keyNum); #set key = count 6 * num exaple	
 		
@@ -104,12 +104,12 @@ sub main
 		#print Dumper @$INDATA; 
 		#return ;
 		
-		$sl->trainANN(30,1000);
+		$sl->trainANN(1,1001);
 		
 		$sl->save2fileANN();
 	
 		
-		$sl->trainData(50000, 100, 0.000000035);
+		$sl->trainData(50000, 100, 0.000023);
 		$sl->{'filename'} = $filename;
 		$sl->save2fileANN();
 
@@ -138,7 +138,7 @@ sub main
         #createTrainFile(3, '1.csv');
         #createTrainFile(3, '2.csv');
         #createTrainFile(3, '3.csv');
-        $sl->createTrainFile($keyNum, 'info/new2.csv' ,100, 3);
+        $sl->createTrainFile($keyNum, 'info/new2.csv' ,100, 4);
         
 	}
 	elsif($ARGV[0] eq 'test')
