@@ -138,7 +138,7 @@ sub main
         #createTrainFile(3, '1.csv');
         #createTrainFile(3, '2.csv');
         #createTrainFile(3, '3.csv');
-        $sl->createTrainFile($keyNum, 'info/new2.csv' ,25, 3);
+        $sl->createTrainFile($keyNum, 'info/new2.csv' ,100, 3);
         
 	}
 	elsif($ARGV[0] eq 'test')
@@ -147,12 +147,13 @@ sub main
     }
 	elsif($ARGV[0] eq 'autotest')
     {	
-		$sl->{'neurons_hidden'} = 15; # 52 * 4	
+		$sl->{'neurons_hidden'} = 32; # 52 * 4	
 		$sl->{'neurons2_hidden'} = 0;	
 		
 
-		for(1..10)
+		for(1..3)
 		{
+            print "$_ \n"; 
 				#$sl->{'neurons_hidden'} = $_;
 				#auto_test($keyNum, 5);
 				auto_test($keyNum, 5);
@@ -161,13 +162,18 @@ sub main
 		for my $i (1..52)
 		{
 			my ($count) = 0;
+
 			for(@globalCash)
 			{
-				$count++ if($_*100 == $i);
+                
+				$count++ if($_->[0] == $i);
 			}
 
-			print "$i= $count";
+			print "$i = $count \n";
 		}
+        
+        print "0.33 0.13 0.47 0.41 0.3 0.38 \n";
+        #print Dumper @globalCash;
 	}
     else
 	{
