@@ -26,7 +26,10 @@ use utf8;
 use Data::Dumper;
 use SL;
 
+
 my ($sl, @globalCash);
+
+
 sub auto_test
 {
 	my($keyNum, $countTrain) =@_;
@@ -41,11 +44,11 @@ sub auto_test
 
 	my($ann) =  $sl->{'ann'};
 
-	for(0..4)
+	for(0)
 	{
 		undef $sl->{'ann'};
 		$sl->{'ann'} = $ann;
-		$sl->trainData(10000, 0, 0.000000035);		
+		$sl->trainData(10000, 0, 0.000022);		
 		my ($bitfail) = $sl->{'ann'}->bit_fail;
 
 		#$sl->save2fileANN();
@@ -71,7 +74,7 @@ sub main
 {
     my $filename = 'brains/go-out52.ann';
     my $in = 18;
-	my $keyNum = 6 ;
+	my $keyNum = 2 ;
     my ($filetrain) = "train/train.txt";
 
     $sl = SL->new();
@@ -81,9 +84,9 @@ sub main
 	#$sl->{'input'} = $in; # for old version
 	$sl->{'input'} = 52*$keyNum;
 	$sl->{'filename'} = $filename;
-    $sl->{'neurons_hidden'} = 64; # 52 * 4
+    $sl->{'neurons_hidden'} = 32; # 52 * 4
     $sl->{'neurons2_hidden'} = 0;
-    $sl->{'desired_error'} = 0.00199;
+    $sl->{'desired_error'} = 0.00000012;
 
     unless($ARGV[0])
 	{
@@ -94,9 +97,9 @@ sub main
 	{
 		$sl->{'filename'} = 'brains/go-tarin2me.ann';
 
-		#$sl->craeteANN();
+		$sl->craeteANN();
 		
-		$sl->loadFileAnn();
+		#$sl->loadFileAnn();
 		
 		$sl->createTrainData($keyNum); #set key = count 6 * num exaple	
 		
@@ -104,12 +107,12 @@ sub main
 		#print Dumper @$INDATA; 
 		#return ;
 		
-		$sl->trainANN(1,1001);
+		$sl->trainANN(50,1001);
 		
 		$sl->save2fileANN();
 	
 		
-		$sl->trainData(50000, 100, 0.000023);
+		$sl->trainData(50000, 100, 0.00000012);
 		$sl->{'filename'} = $filename;
 		$sl->save2fileANN();
 
@@ -138,7 +141,7 @@ sub main
         #createTrainFile(3, '1.csv');
         #createTrainFile(3, '2.csv');
         #createTrainFile(3, '3.csv');
-        $sl->createTrainFile($keyNum, 'info/new2.csv' ,100, 4);
+        $sl->createTrainFile($keyNum, 'info/new2.csv' ,25, 3);
         
 	}
 	elsif($ARGV[0] eq 'test')
@@ -151,13 +154,15 @@ sub main
 		$sl->{'neurons2_hidden'} = 0;	
 		
 
-		for(1..3)
+		for(1..100)
 		{
             print "$_ \n"; 
 				#$sl->{'neurons_hidden'} = $_;
-				#auto_test($keyNum, 5);
-				auto_test($keyNum, 5);
+				auto_test($keyNum, 40);
+				auto_test($keyNum, 40);
 		}
+		
+		my (%assum);
 
 		for my $i (1..52)
 		{
@@ -168,12 +173,17 @@ sub main
                 
 				$count++ if($_->[0] == $i);
 			}
-
-			print "$i = $count \n";
+			$assum{$i} = $count;
+			#print "$i = $count \n";
 		}
-        
-        print "0.33 0.13 0.47 0.41 0.3 0.38 \n";
-        #print Dumper @globalCash;
+
+		foreach my $name (sort { $assum{$a} <=> $assum{$b} } keys %assum) 
+		{
+			printf "%-8s %s\n", $name, $assum{$name};
+		}
+
+			
+		#print Dumper @globalCash;
 	}
     else
 	{

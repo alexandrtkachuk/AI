@@ -27,8 +27,13 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 $VERSION     = 1.00;
 @ISA         = qw(Exporter);
 @EXPORT      = ();
-@EXPORT_OK   = qw(isNumeric arr2str  getInArr parseCSV editHFile toFile did2bit createInData sortme);
-%EXPORT_TAGS = ( DEF => [qw(&isNumeric  &arr2str  &getInArr &parseCSV &editHFile &toFile &did2bit &createInData &sortme)] );
+@EXPORT_OK   = qw(isNumeric arr2str  getInArr parseCSV editHFile toFile did2bit createInData sortme createArr4TrainFileFun  in_array);
+%EXPORT_TAGS = ( DEF => 
+	[qw(&isNumeric  
+		&arr2str  &getInArr &parseCSV 
+		&editHFile &toFile &did2bit &createInData &sortme 
+		&createArr4TrainFileFun  &in_array)] 
+);
 
 sub isNumeric
 {
@@ -181,29 +186,70 @@ sub createInData
 sub sortme
 {
 	my($min,@arr) = @_;
-	my ($count, $per, @out) = (0,1);
+	my ($count, $num,  @out, %assum) = (0,0);
 
- 
-	
-	while($per > 0)
+	for(@arr)
 	{
-		my($i) = (0);
-		for(@arr)
-		{
-			$i++;
-			if($per <= $_)
-			{	
-				push @out ,( [$i, $_]);
-				$count++;
-				$arr[$i-1] = 0;
-				return  (@out) if($count >= $min);
-			}
-		}
-
-		$per = $per - 0.0001;
+		$num++;
+		$assum{$num} = $_;
 	}
 
+	foreach my $name (reverse sort { $assum{$a} <=> $assum{$b} } keys  %assum) 
+	{
+		#printf "%-8s %s\n", $name, $assum{$name};
+		push @out ,( [$name, $assum{$name} ]);
+		$count++;
+		return  (@out) if($count >= $min);
+	}
+	
 	return (@out);
 }
+
+
+sub createArr4TrainFileFun
+{
+	my($in, $filename,$coef) = @_;
+
+	my (@rows) = parseCSV($filename);    
+
+    my ($i, @arr) =(0);
+
+    my(@finalrows) = ();
+    
+    my $CR = @rows; #count rows
+    
+    $CR = $CR - $in*6 - 6;
+
+    for($i = 0; $i<$CR; $i = $i+6*$in)
+    {
+		#необходимо избавиться от этой функции getInArr
+	 	(@arr) = @rows[$i..$i+$in*6-1];  
+		
+	    my (@temp) =@rows[$i+$in*6..$i+$in*6+5];  
+
+        for(@temp)
+        {	
+            push @arr, ($_/$coef);
+        }
+
+        push @finalrows, arr2str(@arr);
+    }
+	
+	return (@finalrows);
+}
+
+sub in_array
+{
+	my ($item, @arr) = @_;
+		
+	for(@arr)
+	{
+		my ($el) = $_ * 100; 
+		return 1 if($item eq "$el");
+	}
+
+	return undef;
+}
+
 
 1;

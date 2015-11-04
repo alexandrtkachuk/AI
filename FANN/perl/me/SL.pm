@@ -140,6 +140,7 @@ sub loadFileAnn
 	return 1;
 }
 
+#need move
 sub file2array
 {
 
@@ -200,6 +201,7 @@ sub file2data
     return ;
 }
 
+#need move to Help
 sub createOutData
 {
     my ($self, $key,$num_input , @arr) = @_;
@@ -244,7 +246,7 @@ sub train_to_file
         print "end $s - step \n" unless($self->{'auto'});
     }
 
-    return ;
+    return 1;
 }
 
 sub testANN
@@ -259,47 +261,32 @@ sub testANN
 		$self->{'filetest'});
 	
     for my $i(0..$count-1)
-    {
-        #print @$_;	
-		
-        print "start $i \n";
+	{
+		#print @$_;	
+
+		print "start $i \n";
 		my ($dN) =  $data[$i]->[0];
-			
-        my $out  = $self->{'ann'}->run([@$dN]);
+
+		my $out  = $self->{'ann'}->run([@$dN]);
 		#print Dumper @$out;
-		my (@assum) = sortme(20, @$out);
+		#print Dumper  @$dN;
 		
+		my (@assum) = sortme(10, @$out);
+
 		my ($amount) = 0;	
 		my $res = $data[$i]->[1];
-
+			
 		for(@assum)
 		{
 			print $_->[0], ' -> ' ,$_->[1],  "\n";
 			$amount++ if(in_array($_->[0],@$res));
 		}
-		
-		
-		
+
 		print Dumper $res;
 
-		print 	"\n amount  = $amount  \nend\n";
-    }
-
-}
-
-
-
-sub in_array
-{
-	my ($item, @arr) = @_;
-		
-	for(@arr)
-	{
-		my ($el) = $_ * 100; 
-		return 1 if($item eq "$el");
+		print 	"\n amount#2  = $amount  \nend\n";
 	}
 
-	return undef;
 }
 
 sub autoTestANN
@@ -371,40 +358,13 @@ sub autoTestNext
 	return (@assum);
 }
 
-
-
 sub createTrainFile
 {
     my($self, $in, $filename,$count_data_train, $count_data_test  ) = @_;
 	#$count_data_train
-
-    my (@rows) = parseCSV($filename);    
-
-    my ($i, @arr) =(0);
-
-    my(@finalrows) = ();
-    
-    my $CR = @rows;
-    
-    $CR = $CR - $in*6 - 6;
-
-    for($i = 0; $i<$CR; $i = $i+6)
-    {
-		#необходимо избавиться от этой функции getInArr
-	 	(@arr) = @rows[$i..$i+$in*6-1];  
-		
-	    my (@temp) =@rows[$i+$in*6..$i+$in*6+5];  
-
-        for(@temp)
-        {	
-            push @arr, ($_/$self->{'coef'});
-        }
-
-        push @finalrows, arr2str(@arr);
-    }
-	
-
-
+		    
+    my(@finalrows) =  createArr4TrainFileFun($in, $filename, $self->{'coef'} );
+    	
     my $count  =  @finalrows;
 
 	if($count > $count_data_train+$count_data_test)
@@ -412,8 +372,9 @@ sub createTrainFile
 		$count = $count_data_train+$count_data_test;
 
 		(@finalrows) = @finalrows[-1*$count..-1];
-	}
+	}	
 	
+	#create test file	
 	toFile( $self->{'filetest'}, @finalrows[-1*$count_data_test..-1]); #create test file
 
 	for(0..$count_data_test-1)
