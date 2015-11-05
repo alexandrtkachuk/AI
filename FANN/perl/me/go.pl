@@ -66,10 +66,6 @@ sub auto_test
 	undef $sl->{'ann'};
 }
 
-
-
-
-
 sub main
 {
     my $filename = 'brains/go-out52.ann';
@@ -84,7 +80,7 @@ sub main
 	#$sl->{'input'} = $in; # for old version
 	$sl->{'input'} = 52*$keyNum;
 	$sl->{'filename'} = $filename;
-    $sl->{'neurons_hidden'} = 32; # 52 * 4
+    $sl->{'neurons_hidden'} = 17; # 52 * 4
     $sl->{'neurons2_hidden'} = 0;
     $sl->{'desired_error'} = 0.00000012;
 
@@ -112,7 +108,7 @@ sub main
 		$sl->save2fileANN();
 	
 		
-		$sl->trainData(50000, 100, 0.00000012);
+		$sl->trainData(50000, 100, 0.0000000012);
 		$sl->{'filename'} = $filename;
 		$sl->save2fileANN();
 
@@ -134,14 +130,14 @@ sub main
 		close $fh; #обнуляем файл
 		
 		open( $fh, '>', $sl->{'filetest'}) or die "Не могу открыть файл '$sl->{'filetest'}' $!";
-		say $fh  "3 = count test";
+		say $fh  "4 = count test";
 		close $fh; #обнуляем файл
 
 
         #createTrainFile(3, '1.csv');
         #createTrainFile(3, '2.csv');
         #createTrainFile(3, '3.csv');
-        $sl->createTrainFile($keyNum, 'info/new2.csv' ,25, 3);
+        $sl->createTrainFile($keyNum, 'info/new2.csv' ,100, 4);
         
 	}
 	elsif($ARGV[0] eq 'test')
@@ -150,7 +146,7 @@ sub main
     }
 	elsif($ARGV[0] eq 'autotest')
     {	
-		$sl->{'neurons_hidden'} = 32; # 52 * 4	
+		#$sl->{'neurons_hidden'} = 32; # 52 * 4	
 		$sl->{'neurons2_hidden'} = 0;	
 		
 

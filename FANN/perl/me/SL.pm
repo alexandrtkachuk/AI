@@ -78,8 +78,8 @@ sub craeteANN
 	my $ann = AI::FANN->new_standard(@inArr );
 	
 
-    $ann->hidden_activation_function(FANN_SIGMOID_SYMMETRIC);
-    $ann->output_activation_function(FANN_SIGMOID_SYMMETRIC);
+    $ann->hidden_activation_function(FANN_SIGMOID);
+    $ann->output_activation_function(FANN_SIGMOID);
         
     $self->{'ann'} = $ann;
 	
